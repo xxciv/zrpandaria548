@@ -484,10 +484,12 @@ local function ColorNodeTooltip(tooltip)
     -- Re-applied every frame: the client may repaint the line after OnShow.
     local line = nodeTip.line and TooltipLine(nodeTip.line)
     if line then
+        line:SetTextColor(unpack(nodeTip.color))
         if line:GetText() ~= nodeTip.text then
             line:SetText(nodeTip.text)
+            -- The tooltip was sized for the client's "1"; Show() on a shown tooltip re-fits its width.
+            tooltip:Show()
         end
-        line:SetTextColor(unpack(nodeTip.color))
     end
 end
 

@@ -5,7 +5,7 @@ Newest first. Each entry says what changed, which files it touches, and what you
 
 ## 2026-10-06
 
-**ZRProfessions 1.2: gathering tooltips for 3rd and 4th professions** (`client/ZRProfessions/`)
+**ZRProfessions 1.3: gathering tooltips for 3rd and 4th professions** (`client/ZRProfessions/`)
 - Why: for a profession that isn't in the Professions tab's 2 slots, the client prints "Requires Herbalism 1" in red
   on every node (and a red "Skinnable" on corpses) whatever your skill. The real requirement is still enforced
   by the server: Briarthorn refused Herbalism 32 with "Requires Herbalism 70".
@@ -18,7 +18,10 @@ Newest first. Each entry says what changed, which files it touches, and what you
   Professions in the 2 slots are left to the client.
 - 1.1 kept the table in a second file, `ZRProfessions_Nodes.lua`. In game it didn't load and every node tooltip
   threw "attempt to index global 'ZRPROFESSIONS_NODES'". 1.2 keeps everything in the one file, so it can't happen again.
-- `ZRProfessions.toc`: version 1.2. `README.md` (addon): new "Gathering tooltips" section.
+- 1.3: after swapping "1" for the real number the tooltip is re-fitted (it was sized for the shorter text, so a
+  longer number ran into the right border).
+- Confirmed in game: Briarthorn shows "Requires Herbalism 70" in red at Herbalism 32.
+- `ZRProfessions.toc`: version 1.3. `README.md` (addon): new "Gathering tooltips" section.
 - To pick up: no rebuild, no SQL, no restart. Replace the `ZRProfessions` folder in `Interface/AddOns/` (delete
   `ZRProfessions_Nodes.lua` if 1.1 left it there) and restart the game client.
 
