@@ -20,7 +20,7 @@ Newest first. Each entry says what changed, which files it touches, and what you
   threw "attempt to index global 'ZRPROFESSIONS_NODES'". 1.2 keeps everything in the one file, so it can't happen again.
 - 1.3: after swapping "1" for the real number the tooltip is re-fitted (it was sized for the shorter text, so a
   longer number ran into the right border).
-- Confirmed in game: Briarthorn shows "Requires Herbalism 70" in red at Herbalism 32.
+- Confirmed in game: Briarthorn shows "Requires Herbalism 70" in red at Herbalism 32, and the tooltip fits. Merged into `main`.
 - `ZRProfessions.toc`: version 1.3. `README.md` (addon): new "Gathering tooltips" section.
 - To pick up: no rebuild, no SQL, no restart. Replace the `ZRProfessions` folder in `Interface/AddOns/` (delete
   `ZRProfessions_Nodes.lua` if 1.1 left it there) and restart the game client.

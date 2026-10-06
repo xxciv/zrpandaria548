@@ -2,7 +2,7 @@
 
 Lets characters learn up to 4 primary professions on a 5.4.8 client, and lists all of them with `/profs`.
 
-Status: confirmed working in game on 2026-10-01 (a character with Leatherworking and Skinning trained a 3rd profession).
+Status: confirmed working in game. Trainers since 2026-10-01 (a character with Leatherworking and Skinning trained a 3rd profession); gathering tooltips since 2026-10-06 (version 1.3).
 
 ## Why an addon is needed
 
