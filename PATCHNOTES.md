@@ -3,6 +3,28 @@
 Newest first. Each entry says what changed, which files it touches, and what you need to do to pick it up
 (rebuild, restart, re-run SQL, edit config).
 
+## 2026-10-06
+
+**ZRProfessions 1.3: gathering tooltips for 3rd and 4th professions** (`client/ZRProfessions/`)
+- Why: for a profession that isn't in the Professions tab's 2 slots, the client prints "Requires Herbalism 1" in red
+  on every node (and a red "Skinnable" on corpses) whatever your skill. The real requirement is still enforced
+  by the server: Briarthorn refused Herbalism 32 with "Requires Herbalism 70".
+- `ZRProfessions.lua`: new `NODES` table with the required skill and skill-up color steps for 107 herb and ore
+  nodes. Pre-Pandaria nodes use their classic required skill R (+25 / +50 / +100 for the colors, matching Wowhead,
+  e.g. Briarthorn 70 / 95 / 120 / 170); Pandaria nodes need 1 and take their colors from `trivialSkillLow`/`High`
+  in the world DB's `gameobject_template`, the same values the server uses for skill-ups. New tooltip hooks: for a
+  node or corpse whose profession isn't in a client slot, the placeholder 1 becomes the real requirement and the
+  line turns red (too low), orange, yellow, green or gray. Re-applied every frame in case the client repaints it.
+  Professions in the 2 slots are left to the client.
+- 1.1 kept the table in a second file, `ZRProfessions_Nodes.lua`. In game it didn't load and every node tooltip
+  threw "attempt to index global 'ZRPROFESSIONS_NODES'". 1.2 keeps everything in the one file, so it can't happen again.
+- 1.3: after swapping "1" for the real number the tooltip is re-fitted (it was sized for the shorter text, so a
+  longer number ran into the right border).
+- Confirmed in game: Briarthorn shows "Requires Herbalism 70" in red at Herbalism 32, and the tooltip fits. Merged into `main`.
+- `ZRProfessions.toc`: version 1.3. `README.md` (addon): new "Gathering tooltips" section.
+- To pick up: no rebuild, no SQL, no restart. Replace the `ZRProfessions` folder in `Interface/AddOns/` (delete
+  `ZRProfessions_Nodes.lua` if 1.1 left it there) and restart the game client.
+
 ## 2026-10-01
 
 **Level-appropriate pickpocket loot in revamped dungeons** (guide section 13)
