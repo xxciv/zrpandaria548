@@ -50,7 +50,7 @@ The server checks each node's real required skill when you gather (from `Lock.db
 Briarthorn, for example, needs Herbalism 70 and is refused below that, even though the client tooltip says 1
 for an unslotted Herbalism.
 
-`ZRProfessions_Nodes.lua` holds, per node name (enUS client), the required skill and the color steps:
+The `NODES` table in `ZRProfessions.lua` holds, per node name (enUS client), the required skill and the color steps:
 - Pre-Pandaria nodes use the classic required skill R (Briarthorn 70, Earthroot 15, ...): red below R, orange from
   R, yellow from R+25, green from R+50, gray from R+100. Those are the same steps the server's
   `Player::UpdateGatherSkill` uses for skill-up chances.
@@ -59,6 +59,6 @@ for an unslotted Herbalism.
   low, green at high, gray at high + (high - low), as `UpdateGatherSkill` does.
 - Corpses (skinning, or herbalism/mining on some creatures) use the core's level formula and go red below it.
 
-A node missing from the table keeps the client's line. Add it to `ZRProfessions_Nodes.lua` by name. If the
+A node missing from the table keeps the client's line. Add it to the `NODES` table by name. If the
 server ever refuses a node the addon showed as gatherable, the in-game error ("Requires Herbalism 70") gives
 the right number to put in the table.

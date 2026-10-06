@@ -275,6 +275,129 @@ SlashCmdList["ZRPROFESSIONS"] = TogglePanel
 
 local HERBALISM, MINING, SKINNING = 182, 186, 393
 
+-- Gathering node requirements for the tooltips below (enUS node names).
+-- req: skill the server needs before it lets you gather the node (Lock.dbc, checked in Spell::CanOpenLock).
+-- yellow/green/gray: skill at which the node turns that color; from req up to yellow it is orange.
+--
+-- Pre-Pandaria nodes: the classic required skill R (e.g. Briarthorn 70, which the server enforces), and
+-- R+25 / R+50 / R+100 for the colors, the same steps Player::UpdateGatherSkill uses for skill-up chances.
+-- Pandaria nodes share the Peacebloom / Copper Vein locks (req 1); their colors come from
+-- trivialSkillLow/High (data23/data24) in the world DB's gameobject_template, turned into colors the way
+-- UpdateGatherSkill does: yellow = low, green = high, gray = high + (high - low).
+
+local NODES = {
+    -- Herbalism (182)
+    ['Peacebloom'] = { skill = 182, req = 1, yellow = 26, green = 51, gray = 101 },
+    ['Silverleaf'] = { skill = 182, req = 1, yellow = 26, green = 51, gray = 101 },
+    ['Bloodthistle'] = { skill = 182, req = 1, yellow = 26, green = 51, gray = 101 },
+    ['Earthroot'] = { skill = 182, req = 15, yellow = 40, green = 65, gray = 115 },
+    ['Mageroyal'] = { skill = 182, req = 50, yellow = 75, green = 100, gray = 150 },
+    ['Briarthorn'] = { skill = 182, req = 70, yellow = 95, green = 120, gray = 170 },
+    ['Stranglekelp'] = { skill = 182, req = 85, yellow = 110, green = 135, gray = 185 },
+    ['Bruiseweed'] = { skill = 182, req = 100, yellow = 125, green = 150, gray = 200 },
+    ['Wild Steelbloom'] = { skill = 182, req = 115, yellow = 140, green = 165, gray = 215 },
+    ['Grave Moss'] = { skill = 182, req = 120, yellow = 145, green = 170, gray = 220 },
+    ['Kingsblood'] = { skill = 182, req = 125, yellow = 150, green = 175, gray = 225 },
+    ['Liferoot'] = { skill = 182, req = 150, yellow = 175, green = 200, gray = 250 },
+    ['Fadeleaf'] = { skill = 182, req = 160, yellow = 185, green = 210, gray = 260 },
+    ['Goldthorn'] = { skill = 182, req = 170, yellow = 195, green = 220, gray = 270 },
+    ['Khadgar\'s Whisker'] = { skill = 182, req = 185, yellow = 210, green = 235, gray = 285 },
+    ['Dragon\'s Teeth'] = { skill = 182, req = 195, yellow = 220, green = 245, gray = 295 },
+    ['Firebloom'] = { skill = 182, req = 205, yellow = 230, green = 255, gray = 305 },
+    ['Purple Lotus'] = { skill = 182, req = 210, yellow = 235, green = 260, gray = 310 },
+    ['Arthas\' Tears'] = { skill = 182, req = 220, yellow = 245, green = 270, gray = 320 },
+    ['Sungrass'] = { skill = 182, req = 230, yellow = 255, green = 280, gray = 330 },
+    ['Blindweed'] = { skill = 182, req = 235, yellow = 260, green = 285, gray = 335 },
+    ['Ghost Mushroom'] = { skill = 182, req = 245, yellow = 270, green = 295, gray = 345 },
+    ['Gromsblood'] = { skill = 182, req = 250, yellow = 275, green = 300, gray = 350 },
+    ['Golden Sansam'] = { skill = 182, req = 260, yellow = 285, green = 310, gray = 360 },
+    ['Dreamfoil'] = { skill = 182, req = 270, yellow = 295, green = 320, gray = 370 },
+    ['Mountain Silversage'] = { skill = 182, req = 280, yellow = 305, green = 330, gray = 380 },
+    ['Sorrowmoss'] = { skill = 182, req = 285, yellow = 310, green = 335, gray = 385 },
+    ['Icecap'] = { skill = 182, req = 290, yellow = 315, green = 340, gray = 390 },
+    ['Black Lotus'] = { skill = 182, req = 300, yellow = 325, green = 350, gray = 400 },
+    ['Felweed'] = { skill = 182, req = 300, yellow = 325, green = 350, gray = 400 },
+    ['Dreaming Glory'] = { skill = 182, req = 315, yellow = 340, green = 365, gray = 415 },
+    ['Ragveil'] = { skill = 182, req = 325, yellow = 350, green = 375, gray = 425 },
+    ['Terocone'] = { skill = 182, req = 325, yellow = 350, green = 375, gray = 425 },
+    ['Flame Cap'] = { skill = 182, req = 335, yellow = 360, green = 385, gray = 435 },
+    ['Ancient Lichen'] = { skill = 182, req = 340, yellow = 365, green = 390, gray = 440 },
+    ['Netherbloom'] = { skill = 182, req = 350, yellow = 375, green = 400, gray = 450 },
+    ['Netherdust Bush'] = { skill = 182, req = 350, yellow = 375, green = 400, gray = 450 },
+    ['Nightmare Vine'] = { skill = 182, req = 365, yellow = 390, green = 415, gray = 465 },
+    ['Mana Thistle'] = { skill = 182, req = 375, yellow = 400, green = 425, gray = 475 },
+    ['Goldclover'] = { skill = 182, req = 350, yellow = 375, green = 400, gray = 450 },
+    ['Firethorn'] = { skill = 182, req = 360, yellow = 385, green = 410, gray = 460 },
+    ['Tiger Lily'] = { skill = 182, req = 375, yellow = 400, green = 425, gray = 475 },
+    ['Talandra\'s Rose'] = { skill = 182, req = 385, yellow = 410, green = 435, gray = 485 },
+    ['Adder\'s Tongue'] = { skill = 182, req = 400, yellow = 425, green = 450, gray = 500 },
+    ['Frozen Herb'] = { skill = 182, req = 400, yellow = 425, green = 450, gray = 500 },
+    ['Lichbloom'] = { skill = 182, req = 425, yellow = 450, green = 475, gray = 525 },
+    ['Icethorn'] = { skill = 182, req = 435, yellow = 460, green = 485, gray = 535 },
+    ['Frost Lotus'] = { skill = 182, req = 450, yellow = 475, green = 500, gray = 550 },
+    ['Cinderbloom'] = { skill = 182, req = 425, yellow = 450, green = 475, gray = 525 },
+    ['Stormvine'] = { skill = 182, req = 425, yellow = 450, green = 475, gray = 525 },
+    ['Azshara\'s Veil'] = { skill = 182, req = 425, yellow = 450, green = 475, gray = 525 },
+    ['Heartblossom'] = { skill = 182, req = 475, yellow = 500, green = 525, gray = 575 },
+    ['Whiptail'] = { skill = 182, req = 500, yellow = 525, green = 550, gray = 600 },
+    ['Twilight Jasmine'] = { skill = 182, req = 525, yellow = 550, green = 575, gray = 625 },
+    -- Mining (186)
+    ['Copper Vein'] = { skill = 186, req = 1, yellow = 26, green = 51, gray = 101 },
+    ['Tin Vein'] = { skill = 186, req = 65, yellow = 90, green = 115, gray = 165 },
+    ['Incendicite Mineral Vein'] = { skill = 186, req = 65, yellow = 90, green = 115, gray = 165 },
+    ['Silver Vein'] = { skill = 186, req = 75, yellow = 100, green = 125, gray = 175 },
+    ['Ooze Covered Silver Vein'] = { skill = 186, req = 75, yellow = 100, green = 125, gray = 175 },
+    ['Lesser Bloodstone Deposit'] = { skill = 186, req = 75, yellow = 100, green = 125, gray = 175 },
+    ['Iron Deposit'] = { skill = 186, req = 125, yellow = 150, green = 175, gray = 225 },
+    ['Indurium Mineral Vein'] = { skill = 186, req = 150, yellow = 175, green = 200, gray = 250 },
+    ['Gold Vein'] = { skill = 186, req = 155, yellow = 180, green = 205, gray = 255 },
+    ['Ooze Covered Gold Vein'] = { skill = 186, req = 155, yellow = 180, green = 205, gray = 255 },
+    ['Mithril Deposit'] = { skill = 186, req = 175, yellow = 200, green = 225, gray = 275 },
+    ['Ooze Covered Mithril Deposit'] = { skill = 186, req = 175, yellow = 200, green = 225, gray = 275 },
+    ['Truesilver Deposit'] = { skill = 186, req = 230, yellow = 255, green = 280, gray = 330 },
+    ['Ooze Covered Truesilver Deposit'] = { skill = 186, req = 230, yellow = 255, green = 280, gray = 330 },
+    ['Dark Iron Deposit'] = { skill = 186, req = 230, yellow = 255, green = 280, gray = 330 },
+    ['Small Thorium Vein'] = { skill = 186, req = 245, yellow = 270, green = 295, gray = 345 },
+    ['Ooze Covered Thorium Vein'] = { skill = 186, req = 245, yellow = 270, green = 295, gray = 345 },
+    ['Rich Thorium Vein'] = { skill = 186, req = 275, yellow = 300, green = 325, gray = 375 },
+    ['Ooze Covered Rich Thorium Vein'] = { skill = 186, req = 275, yellow = 300, green = 325, gray = 375 },
+    ['Hakkari Thorium Vein'] = { skill = 186, req = 275, yellow = 300, green = 325, gray = 375 },
+    ['Small Obsidian Chunk'] = { skill = 186, req = 305, yellow = 330, green = 355, gray = 405 },
+    ['Large Obsidian Chunk'] = { skill = 186, req = 305, yellow = 330, green = 355, gray = 405 },
+    ['Fel Iron Deposit'] = { skill = 186, req = 300, yellow = 325, green = 350, gray = 400 },
+    ['Nethercite Deposit'] = { skill = 186, req = 275, yellow = 300, green = 325, gray = 375 },
+    ['Adamantite Deposit'] = { skill = 186, req = 325, yellow = 350, green = 375, gray = 425 },
+    ['Rich Adamantite Deposit'] = { skill = 186, req = 350, yellow = 375, green = 400, gray = 450 },
+    ['Khorium Vein'] = { skill = 186, req = 375, yellow = 400, green = 425, gray = 475 },
+    ['Ancient Gem Vein'] = { skill = 186, req = 375, yellow = 400, green = 425, gray = 475 },
+    ['Cobalt Deposit'] = { skill = 186, req = 350, yellow = 375, green = 400, gray = 450 },
+    ['Rich Cobalt Deposit'] = { skill = 186, req = 375, yellow = 400, green = 425, gray = 475 },
+    ['Saronite Deposit'] = { skill = 186, req = 400, yellow = 425, green = 450, gray = 500 },
+    ['Rich Saronite Deposit'] = { skill = 186, req = 425, yellow = 450, green = 475, gray = 525 },
+    ['Pure Saronite Deposit'] = { skill = 186, req = 450, yellow = 475, green = 500, gray = 550 },
+    ['Titanium Vein'] = { skill = 186, req = 450, yellow = 475, green = 500, gray = 550 },
+    ['Obsidium Deposit'] = { skill = 186, req = 425, yellow = 450, green = 475, gray = 525 },
+    ['Rich Obsidium Deposit'] = { skill = 186, req = 450, yellow = 475, green = 500, gray = 550 },
+    ['Elementium Vein'] = { skill = 186, req = 475, yellow = 500, green = 525, gray = 575 },
+    ['Rich Elementium Vein'] = { skill = 186, req = 500, yellow = 525, green = 550, gray = 600 },
+    ['Pyrite Deposit'] = { skill = 186, req = 525, yellow = 550, green = 575, gray = 625 },
+    ['Rich Pyrite Deposit'] = { skill = 186, req = 525, yellow = 550, green = 575, gray = 625 },
+    -- Pandaria (world DB)
+    ['Green Tea Leaf'] = { skill = 182, req = 1, yellow = 525, green = 550, gray = 575 },
+    ['Rain Poppy'] = { skill = 182, req = 1, yellow = 550, green = 575, gray = 600 },
+    ['Silkweed'] = { skill = 182, req = 1, yellow = 570, green = 595, gray = 620 },
+    ['Sha-Touched Herb'] = { skill = 182, req = 1, yellow = 575, green = 600, gray = 625 },
+    ['Snow Lily'] = { skill = 182, req = 1, yellow = 600, green = 615, gray = 630 },
+    ['Fool\'s Cap'] = { skill = 182, req = 1, yellow = 600, green = 615, gray = 630 },
+    ['Golden Lotus'] = { skill = 182, req = 1, yellow = 600, green = 615, gray = 630 },
+    ['Ghost Iron Deposit'] = { skill = 186, req = 1, yellow = 550, green = 600, gray = 650 },
+    ['Rich Ghost Iron Deposit'] = { skill = 186, req = 1, yellow = 575, green = 600, gray = 625 },
+    ['Kyparite Deposit'] = { skill = 186, req = 1, yellow = 600, green = 615, gray = 630 },
+    ['Rich Kyparite Deposit'] = { skill = 186, req = 1, yellow = 600, green = 615, gray = 630 },
+    ['Trillium Vein'] = { skill = 186, req = 1, yellow = 600, green = 615, gray = 630 },
+    ['Rich Trillium Vein'] = { skill = 186, req = 1, yellow = 605, green = 620, gray = 635 },
+}
+
 local COLORS = {
     red    = { 1.00, 0.10, 0.10 },
     orange = { 1.00, 0.50, 0.25 },
@@ -335,7 +458,7 @@ local function ColorNodeTooltip(tooltip)
     end
     if nodeTip.title ~= title then
         nodeTip.title, nodeTip.line, nodeTip.text, nodeTip.color = title, nil, nil, nil
-        local node = ZRPROFESSIONS_NODES[strtrim(title)]
+        local node = NODES[strtrim(title)]
         if not node or IsShownNatively(node.skill) then
             return
         end
