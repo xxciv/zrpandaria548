@@ -16,10 +16,11 @@ This addon:
 - Re-enables **Train** for a new primary profession while you know fewer than 4. The server still checks
   `MaxPrimaryTradeSkill` when you buy, so it remains the real limit.
 - Fixes the "learn this profession?" popup, which has no text for when you already know 2.
-- Colors gathering tooltips for professions that aren't on the Professions tab. The client only colors
-  "Requires Herbalism 1" (herbs, ore) and "Skinnable" (corpses) for its 2 slotted professions and shows the
-  rest in red. The addon colors them orange, yellow, green or gray by skill-up chance, like the client does
-  for slotted ones (see "Gathering colors" below).
+- Fixes gathering tooltips for professions that aren't on the Professions tab. For those the client prints
+  "Requires Herbalism 1" in red on every herb and ore node and a red "Skinnable" on corpses, whatever your
+  skill. The addon shows the real requirement and colors it the way the client does for slotted professions:
+  red if you can't gather it yet, then orange, yellow, green or gray by skill-up chance (see
+  "Gathering tooltips" below).
 - Adds a **Primary Professions** panel (`/profs`, `/zrprofs`, or the **All professions** button under the
   Professions tab) listing every primary profession with its rank. Click a crafting profession to open it
   (Mining opens Smelting). Herbalism and Skinning have no window; they work on nodes and corpses as normal.
@@ -43,19 +44,21 @@ If the server limit is not 4, change `MAX_PRIMARY_PROFESSIONS` at the top of `ZR
 - The panel closes when you enter combat and can't be opened during it (its buttons cast spells, which the
   client locks in combat).
 
-## Gathering colors
+## Gathering tooltips
 
-Since patch 5.0.4 every herb and ore node can be gathered at skill 1, so "Requires Herbalism 1" is the real
-requirement for every node, not a bug. What changes with skill is the chance of a skill-up, which the color shows:
-orange (always), yellow (often), green (rarely), gray (never).
+The server checks each node's real required skill when you gather (from `Lock.dbc`, in `Spell::CanOpenLock`).
+Briarthorn, for example, needs Herbalism 70 and is refused below that, even though the client tooltip says 1
+for an unslotted Herbalism.
 
-`ZRProfessions_Nodes.lua` holds the thresholds per node name (enUS client):
-- Pre-Pandaria nodes use the old required skill R: yellow at R+25, green at R+50, gray at R+100. That matches
-  Wowhead (Earthroot: 15 / 40 / 65 / 115) and the steps the server uses for skill-up chances.
-- Pandaria nodes use `trivialSkillLow` / `trivialSkillHigh` (`data23` / `data24`) from `gameobject_template`
-  in the world DB: yellow at low, green at high, gray at high + (high - low), the same way the server's
-  `Player::UpdateGatherSkill` does.
-- Corpses (skinning, or herbalism/mining on some creatures) use the core's level formula; they can be red
-  because the server does refuse those below the required skill.
+`ZRProfessions_Nodes.lua` holds, per node name (enUS client), the required skill and the color steps:
+- Pre-Pandaria nodes use the classic required skill R (Briarthorn 70, Earthroot 15, ...): red below R, orange from
+  R, yellow from R+25, green from R+50, gray from R+100. Those are the same steps the server's
+  `Player::UpdateGatherSkill` uses for skill-up chances.
+- Pandaria nodes share the Peacebloom / Copper Vein lock (required skill 1). Their colors come from
+  `trivialSkillLow` / `trivialSkillHigh` (`data23` / `data24`) in the world DB's `gameobject_template`: yellow at
+  low, green at high, gray at high + (high - low), as `UpdateGatherSkill` does.
+- Corpses (skinning, or herbalism/mining on some creatures) use the core's level formula and go red below it.
 
-A node missing from the table keeps the client's red line. Add it to `ZRProfessions_Nodes.lua` by name.
+A node missing from the table keeps the client's line. Add it to `ZRProfessions_Nodes.lua` by name. If the
+server ever refuses a node the addon showed as gatherable, the in-game error ("Requires Herbalism 70") gives
+the right number to put in the table.

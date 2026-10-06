@@ -269,9 +269,9 @@ SlashCmdList["ZRPROFESSIONS"] = TogglePanel
 -- Tooltips: difficulty colors for gathering with a profession that isn't on the Professions tab
 ---------------------------------------------------------------------------------------------------
 
--- The client colors "Requires Herbalism 1" (nodes) and "Skinnable" (corpses) only for the 2 professions in
--- its slots; for any other it shows red. For those we color the line ourselves: orange, yellow, green or
--- gray by skill-up chance, red only when the skill really is too low (skinning).
+-- The client works out "Requires Herbalism <skill>" (nodes) and "Skinnable" (corpses) only for the 2 professions
+-- in its slots; for any other it prints "1" in red. For those we fill in the real requirement and color the line
+-- ourselves: red when the server would refuse, else orange, yellow, green or gray by skill-up chance.
 
 local HERBALISM, MINING, SKINNING = 182, 186, 393
 
@@ -322,27 +322,54 @@ local function TooltipLine(index)
     return _G["GameTooltipTextLeft" .. index]
 end
 
+-- What we last worked out for the node tooltip on screen, so the per-frame re-apply stays cheap.
+local nodeTip = {}
+
 local function ColorNodeTooltip(tooltip)
     if tooltip:GetUnit() then
         return
     end
     local title = TooltipLine(1) and TooltipLine(1):GetText()
-    local node = title and ZRPROFESSIONS_NODES[strtrim(title)]
-    if not node or IsShownNatively(node.skill) then
+    if not title then
         return
     end
-    local skillName, skill = SkillInfo(node.skill)
-    if not skill then
-        return
-    end
-    for i = 2, tooltip:NumLines() do
-        local line = TooltipLine(i)
-        local text = line and line:GetText()
-        if text and text:find(skillName, 1, true) then
-            line:SetTextColor(unpack(DifficultyColor(skill, node.yellow, node.green, node.gray)))
+    if nodeTip.title ~= title then
+        nodeTip.title, nodeTip.line, nodeTip.text, nodeTip.color = title, nil, nil, nil
+        local node = ZRPROFESSIONS_NODES[strtrim(title)]
+        if not node or IsShownNatively(node.skill) then
             return
         end
+        local skillName, skill = SkillInfo(node.skill)
+        if not skill then
+            return
+        end
+        for i = 2, tooltip:NumLines() do
+            local text = TooltipLine(i) and TooltipLine(i):GetText()
+            if text and text:find(skillName, 1, true) then
+                -- The client prints a placeholder 1 for unslotted professions; show the real requirement.
+                nodeTip.line = i
+                nodeTip.text = text:gsub("%d+$", tostring(node.req))
+                if skill < node.req then
+                    nodeTip.color = COLORS.red
+                else
+                    nodeTip.color = DifficultyColor(skill, node.yellow, node.green, node.gray)
+                end
+                break
+            end
+        end
     end
+    -- Re-applied every frame: the client may repaint the line after OnShow.
+    local line = nodeTip.line and TooltipLine(nodeTip.line)
+    if line then
+        if line:GetText() ~= nodeTip.text then
+            line:SetText(nodeTip.text)
+        end
+        line:SetTextColor(unpack(nodeTip.color))
+    end
+end
+
+local function ResetNodeTooltip()
+    nodeTip.title = nil
 end
 
 local CORPSE_LINES = {
@@ -375,6 +402,8 @@ local function ColorCorpseTooltip(tooltip)
 end
 
 GameTooltip:HookScript("OnShow", ColorNodeTooltip)
+GameTooltip:HookScript("OnUpdate", ColorNodeTooltip)
+GameTooltip:HookScript("OnHide", ResetNodeTooltip)
 GameTooltip:HookScript("OnTooltipSetUnit", ColorCorpseTooltip)
 
 ---------------------------------------------------------------------------------------------------
