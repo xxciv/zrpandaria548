@@ -2,5 +2,6 @@
 ## Title: ZRProfessions
 ## Notes: Lets trainers teach more than 2 primary professions and lists all of them (/profs).
 ## Author: zrpandaria548
-## Version: 1.0
+## Version: 1.1
+ZRProfessions_Nodes.lua
 ZRProfessions.lua

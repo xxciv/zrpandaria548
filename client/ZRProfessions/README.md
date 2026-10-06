@@ -16,6 +16,10 @@ This addon:
 - Re-enables **Train** for a new primary profession while you know fewer than 4. The server still checks
   `MaxPrimaryTradeSkill` when you buy, so it remains the real limit.
 - Fixes the "learn this profession?" popup, which has no text for when you already know 2.
+- Colors gathering tooltips for professions that aren't on the Professions tab. The client only colors
+  "Requires Herbalism 1" (herbs, ore) and "Skinnable" (corpses) for its 2 slotted professions and shows the
+  rest in red. The addon colors them orange, yellow, green or gray by skill-up chance, like the client does
+  for slotted ones (see "Gathering colors" below).
 - Adds a **Primary Professions** panel (`/profs`, `/zrprofs`, or the **All professions** button under the
   Professions tab) listing every primary profession with its rank. Click a crafting profession to open it
   (Mining opens Smelting). Herbalism and Skinning have no window; they work on nodes and corpses as normal.
@@ -38,3 +42,20 @@ If the server limit is not 4, change `MAX_PRIMARY_PROFESSIONS` at the top of `ZR
 - If you unlearn one of the 2 professions shown on the tab, a hidden one moves onto the tab after you relog.
 - The panel closes when you enter combat and can't be opened during it (its buttons cast spells, which the
   client locks in combat).
+
+## Gathering colors
+
+Since patch 5.0.4 every herb and ore node can be gathered at skill 1, so "Requires Herbalism 1" is the real
+requirement for every node, not a bug. What changes with skill is the chance of a skill-up, which the color shows:
+orange (always), yellow (often), green (rarely), gray (never).
+
+`ZRProfessions_Nodes.lua` holds the thresholds per node name (enUS client):
+- Pre-Pandaria nodes use the old required skill R: yellow at R+25, green at R+50, gray at R+100. That matches
+  Wowhead (Earthroot: 15 / 40 / 65 / 115) and the steps the server uses for skill-up chances.
+- Pandaria nodes use `trivialSkillLow` / `trivialSkillHigh` (`data23` / `data24`) from `gameobject_template`
+  in the world DB: yellow at low, green at high, gray at high + (high - low), the same way the server's
+  `Player::UpdateGatherSkill` does.
+- Corpses (skinning, or herbalism/mining on some creatures) use the core's level formula; they can be red
+  because the server does refuse those below the required skill.
+
+A node missing from the table keeps the client's red line. Add it to `ZRProfessions_Nodes.lua` by name.

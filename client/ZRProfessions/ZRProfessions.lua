@@ -1,5 +1,6 @@
 -- ZRProfessions: lets the 5.4.8 trainer UI teach more than 2 primary professions,
--- and lists every primary profession you know (/profs), since the Professions tab only has 2 slots.
+-- lists every primary profession you know (/profs), since the Professions tab only has 2 slots,
+-- and colors gathering tooltips for the professions that aren't in those 2 slots.
 --
 -- The server stays the real limit (worldserver.conf MaxPrimaryTradeSkill). This addon only removes the
 -- client's own "you already know 2" check in Blizzard_TrainerUI.
@@ -51,16 +52,21 @@ end
 
 -- Current/max skill for a skill line, if the client will tell us. GetProfessionInfo is meant for the
 -- indexes GetProfessions() returns; we try the others too and only trust a result whose skill line matches.
-local function SkillValues(skillLine)
+local function SkillInfo(skillLine)
     for index = 1, 256 do
         local ok, name, _, rank, maxRank, _, _, line = pcall(GetProfessionInfo, index)
         if not ok then
             return
         end
         if name and line == skillLine then
-            return rank, maxRank
+            return name, rank, maxRank
         end
     end
+end
+
+local function SkillValues(skillLine)
+    local _, rank, maxRank = SkillInfo(skillLine)
+    return rank, maxRank
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -258,6 +264,118 @@ end
 SLASH_ZRPROFESSIONS1 = "/profs"
 SLASH_ZRPROFESSIONS2 = "/zrprofs"
 SlashCmdList["ZRPROFESSIONS"] = TogglePanel
+
+---------------------------------------------------------------------------------------------------
+-- Tooltips: difficulty colors for gathering with a profession that isn't on the Professions tab
+---------------------------------------------------------------------------------------------------
+
+-- The client colors "Requires Herbalism 1" (nodes) and "Skinnable" (corpses) only for the 2 professions in
+-- its slots; for any other it shows red. For those we color the line ourselves: orange, yellow, green or
+-- gray by skill-up chance, red only when the skill really is too low (skinning).
+
+local HERBALISM, MINING, SKINNING = 182, 186, 393
+
+local COLORS = {
+    red    = { 1.00, 0.10, 0.10 },
+    orange = { 1.00, 0.50, 0.25 },
+    yellow = { 1.00, 1.00, 0.00 },
+    green  = { 0.25, 0.75, 0.25 },
+    gray   = { 0.50, 0.50, 0.50 },
+}
+
+local function DifficultyColor(skill, yellow, green, gray)
+    if skill >= gray then
+        return COLORS.gray
+    elseif skill >= green then
+        return COLORS.green
+    elseif skill >= yellow then
+        return COLORS.yellow
+    end
+    return COLORS.orange
+end
+
+-- True when the client already handles this skill (it is one of the 2 Professions-tab slots).
+local function IsShownNatively(skillLine)
+    local prof1, prof2 = GetProfessions()
+    for _, index in pairs({ prof1, prof2 }) do
+        if select(7, GetProfessionInfo(index)) == skillLine then
+            return true
+        end
+    end
+    return false
+end
+
+-- Required skill to skin (or herb/mine) a corpse, by creature level. Same formula as the core
+-- (Spell::CheckCast, SPELL_EFFECT_SKINNING).
+local function CorpseRequiredSkill(level)
+    if level < 10 then return 0
+    elseif level < 20 then return (level - 10) * 10
+    elseif level < 74 then return level * 5
+    elseif level < 80 then return (level * 2 - 73) * 5
+    elseif level < 85 then return level * 5 + 35
+    elseif level < 88 then return level * 5 + 35 + (level - 84) * 10
+    end
+    return level * 5 + 35 + (level - 85) * 15
+end
+
+local function TooltipLine(index)
+    return _G["GameTooltipTextLeft" .. index]
+end
+
+local function ColorNodeTooltip(tooltip)
+    if tooltip:GetUnit() then
+        return
+    end
+    local title = TooltipLine(1) and TooltipLine(1):GetText()
+    local node = title and ZRPROFESSIONS_NODES[strtrim(title)]
+    if not node or IsShownNatively(node.skill) then
+        return
+    end
+    local skillName, skill = SkillInfo(node.skill)
+    if not skill then
+        return
+    end
+    for i = 2, tooltip:NumLines() do
+        local line = TooltipLine(i)
+        local text = line and line:GetText()
+        if text and text:find(skillName, 1, true) then
+            line:SetTextColor(unpack(DifficultyColor(skill, node.yellow, node.green, node.gray)))
+            return
+        end
+    end
+end
+
+local CORPSE_LINES = {
+    [UNIT_SKINNABLE_LEATHER or "Skinnable"] = SKINNING,
+    [UNIT_SKINNABLE_HERB or "Requires Herbalism"] = HERBALISM,
+    [UNIT_SKINNABLE_ROCK or "Requires Mining"] = MINING,
+}
+
+local function ColorCorpseTooltip(tooltip)
+    local _, unit = tooltip:GetUnit()
+    if not unit or not UnitIsDead(unit) then
+        return
+    end
+    for i = 2, tooltip:NumLines() do
+        local line = TooltipLine(i)
+        local skillLine = line and CORPSE_LINES[line:GetText() or ""]
+        if skillLine and not IsShownNatively(skillLine) then
+            local _, skill = SkillInfo(skillLine)
+            if skill then
+                local required = CorpseRequiredSkill(UnitLevel(unit))
+                if skill < required then
+                    line:SetTextColor(unpack(COLORS.red))
+                else
+                    line:SetTextColor(unpack(DifficultyColor(skill, required + 25, required + 50, required + 100)))
+                end
+            end
+            return
+        end
+    end
+end
+
+GameTooltip:HookScript("OnShow", ColorNodeTooltip)
+GameTooltip:HookScript("OnTooltipSetUnit", ColorCorpseTooltip)
 
 ---------------------------------------------------------------------------------------------------
 -- Events

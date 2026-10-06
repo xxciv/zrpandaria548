@@ -3,6 +3,22 @@
 Newest first. Each entry says what changed, which files it touches, and what you need to do to pick it up
 (rebuild, restart, re-run SQL, edit config).
 
+## 2026-10-06
+
+**ZRProfessions 1.1: gathering tooltips for 3rd and 4th professions** (`client/ZRProfessions/`)
+- Why: the client colors herb/ore tooltips ("Requires Herbalism 1") and corpse tooltips ("Skinnable") only for
+  the 2 professions in its Professions-tab slots, and shows any other profession in red, as if you didn't have
+  it. The "1" itself is correct: since 5.0.4 every node can be gathered at skill 1.
+- `ZRProfessions_Nodes.lua` (new): skill-up color thresholds for 107 herb and ore nodes. Pre-Pandaria nodes come
+  from their old required skill (+25 / +50 / +100); Pandaria nodes come from `trivialSkillLow`/`High` in the world
+  DB's `gameobject_template`, the same values the server uses for skill-ups.
+- `ZRProfessions.lua`: hooks the game tooltip. For a node or corpse whose profession isn't in a client slot, it
+  recolors the requirement line orange / yellow / green / gray by your real skill (red only for corpses you can't
+  skin yet). Professions in the 2 slots are left to the client.
+- `ZRProfessions.toc`: loads the new file, version 1.1. `README.md` (addon): new "Gathering colors" section.
+- To pick up: no rebuild, no SQL, no restart. Copy the updated `client/ZRProfessions` folder over the old one in
+  `Interface/AddOns/` and `/reload` (or relog).
+
 ## 2026-10-01
 
 **Level-appropriate pickpocket loot in revamped dungeons** (guide section 13)
