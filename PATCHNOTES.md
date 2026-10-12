@@ -3,6 +3,23 @@
 Newest first. Each entry says what changed, which files it touches, and what you need to do to pick it up
 (rebuild, restart, re-run SQL, edit config).
 
+## 2026-10-12
+
+**Per-vendor item prices** (guide section 14) (`tools/pandaria/vendor-price.patch`,
+`tools/pandaria/sql/2026_10_12_vendor_price_column.sql`, both new)
+- Why: the NPC Designer (zrbfacore `tools/npc-designer/`) lets you set a price per item per vendor. The stock
+  core only knows each item's own `BuyPrice` from `Item-sparse.db2`, and the world DB's `item_template` is empty,
+  so there was nowhere to put a vendor's price.
+- Patch: `npc_vendor.OverrideGoldCost` (the column later TrinityCore cores and BFA-HavenCore use) is loaded into
+  `VendorItem` (`Creature.h`, `ObjectMgr::LoadVendors`). The merchant window (`ItemHandler.cpp`,
+  `SendListInventory`) and the purchase (`Player.cpp`, `BuyItemFromVendorSlot`) use it when it is 0 or more,
+  else the item's `BuyPrice` as before. Reputation discounts and price auras still apply.
+- SQL: adds the column with default -1, so every existing vendor row keeps its price.
+- Checked: the four changed files compile against pandaria_5.4.8 with the guide's other patches applied, and the
+  patch applies after them. Not yet tried in game.
+- To pick up: apply the patch, rebuild (`Creature.h` changes, so most of the `game` library recompiles), run the
+  SQL, restart worldserver. Patch and column go together: without the column every vendor is empty.
+
 ## 2026-10-06
 
 **ZRProfessions 1.3: gathering tooltips for 3rd and 4th professions** (`client/ZRProfessions/`)

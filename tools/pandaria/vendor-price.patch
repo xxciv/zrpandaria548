@@ -1,0 +1,106 @@
+diff --git a/src/server/game/Entities/Creature/Creature.h b/src/server/game/Entities/Creature/Creature.h
+index 49e03d2..05c20ca 100644
+--- a/src/server/game/Entities/Creature/Creature.h
++++ b/src/server/game/Entities/Creature/Creature.h
+@@ -348,17 +348,19 @@ typedef std::unordered_map<uint32, CreatureAddon> CreatureAddonContainer;
+ // Vendors
+ struct VendorItem
+ {
+-    VendorItem(uint32 _item, int32 _maxcount, uint32 _incrtime, uint32 _ExtendedCost, uint8 _Type)
+-        : item(_item), maxcount(_maxcount), incrtime(_incrtime), ExtendedCost(_ExtendedCost), Type(_Type) { }
++    VendorItem(uint32 _item, int32 _maxcount, uint32 _incrtime, uint32 _ExtendedCost, uint8 _Type, int64 _OverrideGoldCost = -1)
++        : item(_item), maxcount(_maxcount), incrtime(_incrtime), ExtendedCost(_ExtendedCost), Type(_Type), OverrideGoldCost(_OverrideGoldCost) { }
+ 
+     uint32 item;
+     uint32 maxcount;                                        // 0 for infinity item amount
+     uint32 incrtime;                                        // time for restore items amount if maxcount != 0
+     uint32 ExtendedCost;
+     uint8  Type;
++    int64  OverrideGoldCost;                                // -1 = use the item's BuyPrice, otherwise copper per BuyCount stack
+ 
+     //helpers
+-    bool IsGoldRequired(ItemTemplate const* pProto) const { return pProto->Flags2 & ITEM_FLAGS_EXTRA_EXT_COST_REQUIRES_GOLD || !ExtendedCost; }
++    bool IsGoldRequired(ItemTemplate const* pProto) const { return pProto->Flags2 & ITEM_FLAGS_EXTRA_EXT_COST_REQUIRES_GOLD || !ExtendedCost || OverrideGoldCost >= 0; }
++    uint32 GetBuyPrice(ItemTemplate const* pProto) const { return OverrideGoldCost >= 0 ? uint32(OverrideGoldCost) : uint32(std::max<int32>(pProto->BuyPrice, 0)); }
+ };
+ typedef std::vector<VendorItem*> VendorItemList;
+ 
+@@ -375,9 +377,9 @@ struct VendorItemData
+     }
+     bool Empty() const { return m_items.empty(); }
+     uint32 GetItemCount() const { return m_items.size(); }
+-    void AddItem(uint32 item, int32 maxcount, uint32 ptime, uint32 ExtendedCost, uint8 type)
++    void AddItem(uint32 item, int32 maxcount, uint32 ptime, uint32 ExtendedCost, uint8 type, int64 overrideGoldCost = -1)
+     {
+-        m_items.push_back(new VendorItem(item, maxcount, ptime, ExtendedCost, type));
++        m_items.push_back(new VendorItem(item, maxcount, ptime, ExtendedCost, type, overrideGoldCost));
+     }
+     bool RemoveItem(uint32 item_id, uint8 type);
+     VendorItem const* FindItemCostPair(uint32 item_id, uint32 extendedCost, uint8 type) const;
+diff --git a/src/server/game/Entities/Player/Player.cpp b/src/server/game/Entities/Player/Player.cpp
+index fce6089..97732bf 100644
+--- a/src/server/game/Entities/Player/Player.cpp
++++ b/src/server/game/Entities/Player/Player.cpp
+@@ -24634,15 +24634,16 @@ bool Player::BuyItemFromVendorSlot(uint64 vendorguid, uint32 vendorslot, uint32
+     }
+ 
+     uint32 price = 0;
+-    if (crItem->IsGoldRequired(pProto) && pProto->BuyPrice > 0) //Assume price cannot be negative (do not know why it is int32)
++    uint32 buyPrice = crItem->GetBuyPrice(pProto);
++    if (crItem->IsGoldRequired(pProto) && buyPrice > 0)
+     {
+-        uint32 maxCount = MAX_MONEY_AMOUNT / pProto->BuyPrice;
++        uint32 maxCount = MAX_MONEY_AMOUNT / buyPrice;
+         if ((uint32)count > maxCount)
+         {
+             TC_LOG_ERROR("entities.player", "Player %s tried to buy %u item id %u, causing overflow", GetName().c_str(), (uint32)count, pProto->ItemId);
+             count = (uint8)maxCount;
+         }
+-        price = pProto->BuyPrice * ceil((float)count / (float)pProto->BuyCount); //it should not exceed MAX_MONEY_AMOUNT
++        price = buyPrice * ceil((float)count / (float)pProto->BuyCount); //it should not exceed MAX_MONEY_AMOUNT
+ 
+         // reputation discount
+         price = uint32(floor(price * GetReputationPriceDiscount(creature)));
+diff --git a/src/server/game/Globals/ObjectMgr.cpp b/src/server/game/Globals/ObjectMgr.cpp
+index da04e44..617127a 100644
+--- a/src/server/game/Globals/ObjectMgr.cpp
++++ b/src/server/game/Globals/ObjectMgr.cpp
+@@ -8841,7 +8841,7 @@ void ObjectMgr::LoadVendors()
+ 
+     std::set<uint32> skip_vendors;
+ 
+-    QueryResult result = WorldDatabase.Query("SELECT entry, item, maxcount, incrtime, ExtendedCost, type FROM npc_vendor ORDER BY entry, slot ASC");
++    QueryResult result = WorldDatabase.Query("SELECT entry, item, maxcount, incrtime, ExtendedCost, type, OverrideGoldCost FROM npc_vendor ORDER BY entry, slot ASC");
+     if (!result)
+     {
+ 
+@@ -8867,6 +8867,7 @@ void ObjectMgr::LoadVendors()
+             uint32 incrtime     = fields[3].GetUInt32();
+             uint32 ExtendedCost = fields[4].GetUInt32();
+             uint8  type         = fields[5].GetUInt8();
++            int64  overrideGoldCost = fields[6].GetInt64();
+ 
+             if (!IsVendorItemValid(entry, item_id, maxcount, incrtime, ExtendedCost, type, NULL, &skip_vendors))
+                 continue;
+@@ -8880,7 +8881,7 @@ void ObjectMgr::LoadVendors()
+ 
+             VendorItemData& vList = _cacheVendorItemStore[entry];
+ 
+-            vList.AddItem(item_id, maxcount, incrtime, ExtendedCost, type);
++            vList.AddItem(item_id, maxcount, incrtime, ExtendedCost, type, overrideGoldCost);
+             ++count;
+         }
+     }
+diff --git a/src/server/game/Handlers/ItemHandler.cpp b/src/server/game/Handlers/ItemHandler.cpp
+index 86d3460..52a97b7 100644
+--- a/src/server/game/Handlers/ItemHandler.cpp
++++ b/src/server/game/Handlers/ItemHandler.cpp
+@@ -871,7 +871,7 @@ void WorldSession::SendListInventory(uint64 vendorGuid, uint32 vendorEntry)
+                     continue;
+             }
+ 
+-            int32 price = vendorItem->IsGoldRequired(itemTemplate) ? uint32(floor(itemTemplate->BuyPrice * discountMod)) : 0;
++            int32 price = vendorItem->IsGoldRequired(itemTemplate) ? uint32(floor(vendorItem->GetBuyPrice(itemTemplate) * discountMod)) : 0;
+ 
+             if (int32 priceMod = _player->GetTotalAuraModifier(SPELL_AURA_MOD_VENDOR_ITEMS_PRICES))
+                 price -= CalculatePct(price, priceMod);

@@ -421,3 +421,27 @@ Then restart `worldserver`.
 - `2026_10_01_normal_dungeon_pickpocket_loot_revert.sql` restores every original row.
 - Gold in these dungeons is heroic-level too (a Kobold Digger drops 76s 84c). It is left as is; use
   `SoloCraft.Money.Pct` (section 11) to cut it.
+
+## 14. Per-vendor item prices (optional, for the NPC Designer)
+
+The stock core sells every item at its own `BuyPrice` from `Item-sparse.db2`, so two vendors can't sell
+the same item at different prices. This adds `npc_vendor.OverrideGoldCost`, the column later
+TrinityCore cores (and the BFA core) use for that: `-1` keeps the item's price, `0` or more is the price
+in copper for one purchase at that vendor. The
+[NPC Designer](https://github.com/xxciv/zrbfacore/tree/main/tools/npc-designer) writes it.
+
+```sh
+cd ~/pandaria/source
+git apply ../tools-repo/tools/pandaria/vendor-price.patch
+cd build && make -j"$(nproc)" install
+
+mysql -u root -p world < ~/pandaria/tools-repo/tools/pandaria/sql/2026_10_12_vendor_price_column.sql
+```
+
+Then restart `worldserver`.
+
+- Patch the core and add the column together: the patched core reads `OverrideGoldCost` at startup, and
+  without the column the vendor query fails and every vendor in the world is empty.
+- Existing vendor rows get `-1`, so nothing changes until a row sets a price.
+- The price shows in the merchant window and is what the purchase costs; reputation discounts still apply.
+- `Creature.h` changes, so most of the `game` library recompiles.
